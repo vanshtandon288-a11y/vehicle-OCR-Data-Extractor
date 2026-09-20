@@ -30,6 +30,12 @@ export const createNestApp = async (expressInstance: any) => {
   return app;
 };
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 let cachedApp: any;
 
 export default async function handler(req: any, res: any) {

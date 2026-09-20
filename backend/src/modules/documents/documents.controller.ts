@@ -83,12 +83,37 @@ export class DocumentsController {
   )
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
-    @Body() dto: UploadDocumentDto,
+    @Body() body: any,
   ) {
-    if (!file) {
+    let targetFile = file;
+    const documentType = body?.documentType || DocumentType.RC;
+
+    // Base64 file payload fallback for serverless robustness
+    if (!targetFile && body?.base64File) {
+      const base64Data = body.base64File.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+      const filename = `upload_${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`;
+      const filePath = path.join(os.tmpdir(), filename);
+      fs.writeFileSync(filePath, buffer);
+
+      targetFile = {
+        fieldname: 'file',
+        originalname: body.fileName || 'document.jpg',
+        encoding: '7bit',
+        mimetype: 'image/jpeg',
+        destination: os.tmpdir(),
+        filename,
+        path: filePath,
+        size: buffer.length,
+        buffer,
+        stream: null as any,
+      };
+    }
+
+    if (!targetFile) {
       throw new BadRequestException('File is required');
     }
-    return this.documentsService.processDocumentUpload(file, dto.documentType);
+    return this.documentsService.processDocumentUpload(targetFile, documentType);
   }
 
   @Get()
