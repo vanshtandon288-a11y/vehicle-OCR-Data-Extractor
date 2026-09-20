@@ -18,10 +18,55 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
+const preprocessImageInBrowser = (file: File): Promise<Blob | File> => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) return resolve(file);
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      const maxDim = 1800;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(file);
+
+      // Contrast boost and grayscale for high accuracy document OCR
+      ctx.filter = 'contrast(140%) grayscale(100%) brightness(105%)';
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          resolve(blob || file);
+        },
+        'image/jpeg',
+        0.92,
+      );
+    };
+    img.onerror = () => resolve(file);
+    img.src = url;
+  });
+};
+
 const runBrowserOcr = async (file: File): Promise<string> => {
   try {
+    const preprocessedBlob = await preprocessImageInBrowser(file);
     const worker = await createWorker('eng');
-    const ret = await worker.recognize(file);
+    const ret = await worker.recognize(preprocessedBlob);
     await worker.terminate();
     return ret.data.text || '';
   } catch (err) {

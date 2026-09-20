@@ -34,6 +34,11 @@ export function isValidEngine(value: string): boolean {
   if (/^\d{6,8}$/.test(cleaned)) {
     return false;
   }
+  // Reject strings starting with common Chassis/VIN prefixes (e.g. MBL, MLM, MA1, MC38)
+  const chassisPrefixes = ['MBL', 'MLM', 'MA1', 'MB1', 'ME4', 'MD2', 'MAT', 'MC38', 'MBLMC'];
+  if (chassisPrefixes.some((prefix) => cleaned.startsWith(prefix))) {
+    return false;
+  }
   return (
     cleaned.length >= 8 &&
     cleaned.length <= 25 &&
