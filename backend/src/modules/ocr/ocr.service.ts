@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs';
 import { spawn } from 'child_process';
-import * as sharp from 'sharp';
+import sharp from 'sharp';
 import { createWorker } from 'tesseract.js';
 
 export interface OcrResult {
