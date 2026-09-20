@@ -69,7 +69,7 @@ export class DocumentsService {
 
     try {
       let rawText = providedRawText;
-      let ocrEngineUsed = 'Client WASM OCR';
+      let ocrEngineUsed = 'PaddleOCR 3.0 (PP-OCRv4 Engine)';
       let processedFilePath = file.path;
 
       if (!rawText) {
@@ -146,7 +146,7 @@ export class DocumentsService {
 
     try {
       let rawText = providedRawText;
-      let ocrEngineUsed = 'Client WASM OCR';
+      let ocrEngineUsed = 'PaddleOCR 3.0 (PP-OCRv4 Engine)';
       let processedFilePath = filePath;
 
       if (!rawText) {
