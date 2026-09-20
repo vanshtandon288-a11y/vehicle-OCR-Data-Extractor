@@ -143,9 +143,7 @@ export class OcrService {
 
   private async runTesseractOcr(imagePath: string): Promise<string> {
     try {
-      const langPath = path.join(process.cwd(), 'eng.traineddata');
       const worker = await createWorker('eng', 1, {
-        langPath: fs.existsSync(langPath) ? process.cwd() : undefined,
         cachePath: os.tmpdir(),
         cacheMethod: 'write',
       });
