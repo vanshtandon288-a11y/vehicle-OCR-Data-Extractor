@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { createWorker } from 'tesseract.js';
 import {
   ProcessedDocument,
   DocumentListResponse,
@@ -8,25 +9,73 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = (error) => reject(error);
+  });
+};
+
+const runBrowserOcr = async (file: File): Promise<string> => {
+  try {
+    const worker = await createWorker('eng');
+    const ret = await worker.recognize(file);
+    await worker.terminate();
+    return ret.data.text || '';
+  } catch (err) {
+    console.warn('Browser OCR failed, falling back to server side OCR:', err);
+    return '';
+  }
+};
+
 export const apiService = {
   async uploadDocument(
     file: File,
     documentType: DocumentType,
   ): Promise<ProcessedDocument> {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('documentType', documentType);
+    const base64File = await fileToBase64(file);
+    let rawText = '';
 
-    const response = await axios.post<ProcessedDocument>(
-      `${API_BASE_URL}/documents/upload`,
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
+    if (file.type.startsWith('image/')) {
+      rawText = await runBrowserOcr(file);
+    }
+
+    try {
+      const response = await axios.post<ProcessedDocument>(
+        `${API_BASE_URL}/documents/upload-json`,
+        {
+          base64File,
+          fileName: file.name,
+          documentType,
+          rawText,
         },
-      },
-    );
-    return response.data;
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+      return response.data;
+    } catch (err) {
+      console.warn('JSON upload failed, attempting multipart fallback:', err);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('documentType', documentType);
+      if (rawText) formData.append('rawText', rawText);
+
+      const response = await axios.post<ProcessedDocument>(
+        `${API_BASE_URL}/documents/upload`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        },
+      );
+      return response.data;
+    }
   },
 
   async getDocuments(

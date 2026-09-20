@@ -53,6 +53,23 @@ const storage = diskStorage({
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
+  @Post('upload-json')
+  async uploadJson(@Body() body: any) {
+    if (!body?.base64File) {
+      throw new BadRequestException('base64File is required');
+    }
+    const documentType = body?.documentType || DocumentType.RC;
+    const fileName = body?.fileName || 'document.jpg';
+    const rawText = body?.rawText;
+
+    return this.documentsService.processJsonUpload(
+      body.base64File,
+      fileName,
+      documentType,
+      rawText,
+    );
+  }
+
   @Post('upload')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -90,7 +107,7 @@ export class DocumentsController {
 
     // Base64 file payload fallback for serverless robustness
     if (!targetFile && body?.base64File) {
-      const base64Data = body.base64File.replace(/^data:image\/\w+;base64,/, '');
+      const base64Data = body.base64File.replace(/^data:[^;]+;base64,/, '');
       const buffer = Buffer.from(base64Data, 'base64');
       const filename = `upload_${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`;
       const filePath = path.join(os.tmpdir(), filename);
@@ -113,7 +130,7 @@ export class DocumentsController {
     if (!targetFile) {
       throw new BadRequestException('File is required');
     }
-    return this.documentsService.processDocumentUpload(targetFile, documentType);
+    return this.documentsService.processDocumentUpload(targetFile, documentType, body?.rawText);
   }
 
   @Get()

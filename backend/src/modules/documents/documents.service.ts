@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import {
   ProcessedDocument,
   DocumentType,
@@ -43,6 +44,7 @@ export class DocumentsService {
   async processDocumentUpload(
     file: Express.Multer.File,
     documentType: DocumentType,
+    providedRawText?: string,
   ): Promise<ProcessedDocument> {
     if (!file) {
       throw new BadRequestException('No file uploaded');
@@ -66,19 +68,28 @@ export class DocumentsService {
     const savedDocument = await this.documentRepository.save(document);
 
     try {
-      // 1. Run OCR (Sharp resize + PaddleOCR / Tesseract)
-      const ocrResult = await this.ocrService.runOcr(file.path);
-      savedDocument.rawText = ocrResult.rawText;
-      savedDocument.processedFilePath = ocrResult.processedFilePath;
-      savedDocument.ocrEngineUsed = ocrResult.ocrEngineUsed;
+      let rawText = providedRawText;
+      let ocrEngineUsed = 'Client WASM OCR';
+      let processedFilePath = file.path;
 
-      // 2. Extract structured data using strategy-based extraction
+      if (!rawText) {
+        const ocrResult = await this.ocrService.runOcr(file.path);
+        rawText = ocrResult.rawText;
+        ocrEngineUsed = ocrResult.ocrEngineUsed;
+        processedFilePath = ocrResult.processedFilePath;
+      }
+
+      savedDocument.rawText = rawText || '';
+      savedDocument.processedFilePath = processedFilePath;
+      savedDocument.ocrEngineUsed = ocrEngineUsed;
+
+      // Extract structured data using strategy-based extraction
       const extractedPayload = this.extractionService.extractData(
         documentType,
-        ocrResult.rawText,
+        savedDocument.rawText,
       );
 
-      // 3. Create ExtractedData entity
+      // Create ExtractedData entity
       const extractedData = this.extractedDataRepository.create({
         documentId: savedDocument.id,
         ...extractedPayload,
@@ -91,6 +102,81 @@ export class DocumentsService {
       return await this.documentRepository.save(savedDocument);
     } catch (error) {
       this.logger.error(`Error processing document: ${error.message}`);
+      savedDocument.status = ProcessingStatus.FAILED;
+      savedDocument.errorMessage = error.message;
+      return await this.documentRepository.save(savedDocument);
+    }
+  }
+
+  async processJsonUpload(
+    base64Data: string,
+    originalName: string,
+    documentType: DocumentType,
+    providedRawText?: string,
+  ): Promise<ProcessedDocument> {
+    const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, '');
+    const buffer = Buffer.from(cleanBase64, 'base64');
+    const ext = path.extname(originalName) || '.jpg';
+    const filename = `upload_${Date.now()}_${Math.floor(Math.random() * 1000)}${ext}`;
+
+    const targetDir = process.env.VERCEL
+      ? os.tmpdir()
+      : path.join(process.cwd(), 'uploads');
+
+    if (!fs.existsSync(targetDir)) {
+      try {
+        fs.mkdirSync(targetDir, { recursive: true });
+      } catch (e) {}
+    }
+
+    const filePath = path.join(targetDir, filename);
+    fs.writeFileSync(filePath, buffer);
+
+    const document = this.documentRepository.create({
+      originalName,
+      fileName: filename,
+      filePath,
+      mimeType: ext === '.pdf' ? 'application/pdf' : 'image/jpeg',
+      fileSize: buffer.length,
+      documentType,
+      status: ProcessingStatus.PROCESSING,
+    });
+
+    const savedDocument = await this.documentRepository.save(document);
+
+    try {
+      let rawText = providedRawText;
+      let ocrEngineUsed = 'Client WASM OCR';
+      let processedFilePath = filePath;
+
+      if (!rawText) {
+        const ocrResult = await this.ocrService.runOcr(filePath);
+        rawText = ocrResult.rawText;
+        ocrEngineUsed = ocrResult.ocrEngineUsed;
+        processedFilePath = ocrResult.processedFilePath;
+      }
+
+      savedDocument.rawText = rawText || '';
+      savedDocument.processedFilePath = processedFilePath;
+      savedDocument.ocrEngineUsed = ocrEngineUsed;
+
+      const extractedPayload = this.extractionService.extractData(
+        documentType,
+        savedDocument.rawText,
+      );
+
+      const extractedData = this.extractedDataRepository.create({
+        documentId: savedDocument.id,
+        ...extractedPayload,
+      });
+
+      await this.extractedDataRepository.save(extractedData);
+
+      savedDocument.status = ProcessingStatus.COMPLETED;
+      savedDocument.extractedData = extractedData;
+      return await this.documentRepository.save(savedDocument);
+    } catch (error) {
+      this.logger.error(`Error processing json upload: ${error.message}`);
       savedDocument.status = ProcessingStatus.FAILED;
       savedDocument.errorMessage = error.message;
       return await this.documentRepository.save(savedDocument);

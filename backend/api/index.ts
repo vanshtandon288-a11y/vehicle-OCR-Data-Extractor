@@ -5,6 +5,8 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import express from 'express';
 
 const expressApp = express();
+expressApp.use(express.json({ limit: '50mb' }));
+expressApp.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 export const createNestApp = async (expressInstance: any) => {
   const app = await NestFactory.create(

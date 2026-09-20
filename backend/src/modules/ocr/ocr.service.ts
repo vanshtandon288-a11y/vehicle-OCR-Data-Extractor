@@ -143,6 +143,12 @@ export class OcrService {
 
   private async runTesseractOcr(imagePath: string): Promise<string> {
     try {
+      if (process.env.VERCEL) {
+        this.logger.warn(
+          'Skipping server-side Tesseract worker process on Vercel to prevent lambda hang.',
+        );
+        return '';
+      }
       const worker = await createWorker('eng', 1, {
         cachePath: os.tmpdir(),
         cacheMethod: 'write',
