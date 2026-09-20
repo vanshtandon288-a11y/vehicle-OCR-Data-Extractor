@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vehicle Document OCR & Text Extractor (PaddleOCR)</title>
+  <style>
+    :root {
+      --bg: radial-gradient(circle at 50% -20%, #1e1b4b 0%, #0f172a 50%, #020617 100%);
+      --card-bg: rgba(255, 255, 255, 0.04);
+      --card-hover: rgba(255, 255, 255, 0.08);
+      --border: rgba(255, 255, 255, 0.1);
+      --border-hover: rgba(99, 102, 241, 0.5);
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 3rem 1rem; min-height: 100vh; }
+    .container { max-width: 960px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 2.5rem; }
+    header h1 { font-size: 2.2rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
+    header p { color: var(--muted); font-size: 0.95rem; font-weight: 500; }
+    
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 1.5rem;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 20px 50px 0 rgba(0, 0, 0, 0.4);
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .glass-card-morph:hover {
+      transform: translateY(-6px) scale(1.01);
+      background: var(--card-hover);
+      border-color: var(--border-hover);
+      box-shadow: 0 25px 60px 0 rgba(99, 102, 241, 0.25);
+    }
+    
+    .form-group { margin-bottom: 1.5rem; }
+    label { display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.6rem; }
+    select, input[type="file"] { width: 100%; padding: 0.85rem 1.2rem; border-radius: 0.85rem; border: 1px solid var(--border); background: rgba(15, 23, 42, 0.6); color: #fff; font-size: 0.95rem; backdrop-filter: blur(10px); }
+    select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 15px rgba(99, 102, 241, 0.3); }
+    
+    button {
+      width: 100%;
+      padding: 1rem 1.5rem;
+      border-radius: 0.85rem;
+      border: none;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+      color: #fff;
+      box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+      transition: all 0.3s ease;
+      margin-top: 1rem;
+    }
+    button:hover {
+      transform: translateY(-2px) scale(1.01);
+      box-shadow: 0 15px 40px rgba(99, 102, 241, 0.5);
+    }
+    button:active { transform: translateY(0) scale(0.99); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    
+    .drop-zone {
+      border: 2px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 1.2rem;
+      padding: 2.5rem;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(10px);
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .drop-zone:hover {
+      transform: translateY(-4px) scale(1.01);
+      border-color: rgba(99, 102, 241, 0.6);
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 20px 40px rgba(99, 102, 241, 0.15);
+    }
+    
+    .result-box { display: none; margin-top: 1.5rem; }
+    .result-box.active { display: block; }
+    
+    pre {
+      background: rgba(2, 6, 23, 0.8);
+      padding: 1.25rem;
+      border-radius: 0.85rem;
+      border: 1px solid var(--border);
+      font-family: monospace;
+      font-size: 0.9rem;
+      color: #34d399;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      backdrop-filter: blur(10px);
+    }
+    
+    .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
+    .field-card {
+      background: rgba(15, 23, 42, 0.6);
+      padding: 1.25rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+    .field-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(99, 102, 241, 0.4);
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .field-card .key { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+    .field-card .val { font-size: 1.15rem; font-weight: 800; color: #fff; font-family: monospace; margin-top: 0.35rem; }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      backdrop-filter: blur(10px);
+    }
+    
+    .spinner { display: inline-block; width: 1.25rem; height: 1.25rem; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 0.5rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Vehicle Document OCR & Text Extractor</h1>
+      <p>Python PaddleOCR + Express Glassmorphic Intelligence Engine</p>
+    </header>
+
+    <div class="glass-card glass-card-morph">
+      <form id="uploadForm">
+        <div class="form-group">
+          <label for="documentType">1. Select Document Type</label>
+          <select id="documentType" name="documentType" required>
+            <option value="rc">RC (Registration Certificate)</option>
+            <option value="insurance">Insurance Policy</option>
+            <option value="puc">PUC Certificate</option>
+            <option value="permit">Permit Certificate</option>
+            <option value="fitness">Fitness Certificate</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>2. Upload Document File</label>
+          <div class="drop-zone" id="dropZone" onclick="document.getElementById('rcFile').click()">
+            <input type="file" id="rcFile" name="rc" accept="image/*,.pdf" style="display: none;" onchange="handleFileSelect(this)" required />
+            <p id="fileLabel">📄 Click or drag document image / PDF here</p>
+          </div>
+        </div>
+
+        <button type="submit" id="submitBtn">Process Document OCR</button>
+      </form>
+    </div>
+
+    <!-- Extracted Output Section -->
+    <div class="glass-card result-box" id="resultBox">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="font-size: 1.2rem; font-weight: 800;">Extracted Document Fields</h3>
+        <span class="status-badge">PaddleOCR 3.0 Active</span>
+      </div>
+
+      <div class="field-grid" id="fieldGrid"></div>
+
+      <label style="margin-top: 1rem;">Raw Recognized OCR Text Output</label>
+      <pre id="rawOutput"></pre>
+    </div>
+  </div>
+
+  <script>
+    function handleFileSelect(input) {
+      if (input.files && input.files[0]) {
+        document.getElementById('fileLabel').innerText = 'Selected File: ' + input.files[0].name;
+      }
+    }
+
+    const form = document.getElementById('uploadForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const submitBtn = document.getElementById('submitBtn');
+      const resultBox = document.getElementById('resultBox');
+      const fieldGrid = document.getElementById('fieldGrid');
+      const rawOutput = document.getElementById('rawOutput');
+
+      const formData = new FormData(form);
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner"></span> Running PaddleOCR Engine...';
+
+      try {
+        const response = await fetch('/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const json = await response.json();
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Process Document OCR';
+
+        if (json.error) {
+          alert('Error: ' + json.error);
+          return;
+        }
+
+        resultBox.classList.add('active');
+        fieldGrid.innerHTML = '';
+
+        const data = json.extractedData || {};
+        for (const [key, value] of Object.entries(data)) {
+          const card = document.createElement('div');
+          card.className = 'field-card';
+          card.innerHTML = `<div class="key">${key}</div><div class="val">${value || 'N/A'}</div>`;
+          fieldGrid.appendChild(card);
+        }
+
+        rawOutput.innerText = json.rawText || 'No text detected';
+      } catch (err) {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Process Document OCR';
+        alert('Server communication error: ' + err.message);
+      }
+    });
+  </script>
+</body>
+</html>

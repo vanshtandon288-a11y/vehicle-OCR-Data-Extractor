@@ -1,0 +1,24 @@
+{
+  "name": "vehicle-doc-ocr-system",
+  "version": "1.0.0",
+  "description": "Full-Stack Vehicle Document OCR & Structured Data Extraction System (RC, Insurance, PUC, Permit, Fitness)",
+  "main": "text-extractor/server.js",
+  "scripts": {
+    "start": "node text-extractor/server.js",
+    "dev:backend": "cd text-extractor && node server.js",
+    "dev:frontend": "cd frontend && npx vite --port 5173",
+    "dev:nestjs": "cd backend && npm run start:dev",
+    "test:backend": "cd backend && npm test"
+  },
+  "keywords": [
+    "paddleocr",
+    "vehicle-doc-ocr",
+    "express",
+    "nestjs",
+    "react",
+    "typeorm",
+    "glassmorphism"
+  ],
+  "author": "Vansh Tandon",
+  "license": "ISC"
+}
