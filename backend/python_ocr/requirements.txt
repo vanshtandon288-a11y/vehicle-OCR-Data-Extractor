@@ -10,3 +10,6 @@ scipy==1.15.3
 pandas==1.5.3
 shapely==2.1.2
 requests==2.34.2
+fastapi==0.115.8
+uvicorn==0.34.0
+python-multipart==0.0.20

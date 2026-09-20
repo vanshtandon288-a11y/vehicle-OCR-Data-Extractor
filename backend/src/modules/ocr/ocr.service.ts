@@ -81,7 +81,32 @@ export class OcrService {
     };
   }
 
-  private runPaddleOcr(imagePath: string): Promise<string> {
+  private async runPaddleOcr(imagePath: string): Promise<string> {
+    const serviceUrl = process.env.PADDLEOCR_SERVICE_URL;
+    if (serviceUrl) {
+      try {
+        const fileBuffer = fs.readFileSync(imagePath);
+        const BlobClass = globalThis.Blob;
+        const blob = new BlobClass([fileBuffer]);
+        const formData = new FormData();
+        formData.append('file', blob, path.basename(imagePath));
+
+        const response = await fetch(`${serviceUrl.replace(/\/$/, '')}/ocr`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data: any = await response.json();
+          if (data?.rawText) {
+            return data.rawText;
+          }
+        }
+      } catch (e) {
+        this.logger.warn(`PaddleOCR HTTP microservice call failed: ${e.message}`);
+      }
+    }
+
     return new Promise((resolve, reject) => {
       const pythonPath = process.env.PYTHON_PATH || 'python';
       const scriptPath = path.join(process.cwd(), 'python_ocr', 'ocr.py');
