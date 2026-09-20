@@ -66,6 +66,10 @@ const runBrowserOcr = async (file: File): Promise<string> => {
   try {
     const preprocessedBlob = await preprocessImageInBrowser(file);
     const worker = await createWorker('eng');
+    await worker.setParameters({
+      tessedit_pageseg_mode: '6' as any, // Single uniform block of text mode
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -./()',
+    });
     const ret = await worker.recognize(preprocessedBlob);
     await worker.terminate();
     return ret.data.text || '';
