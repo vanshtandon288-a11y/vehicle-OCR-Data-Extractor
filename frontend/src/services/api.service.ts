@@ -6,7 +6,7 @@ import {
   DocumentType,
 } from '../types/document.types';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 export const apiService = {
   async uploadDocument(
@@ -83,6 +83,7 @@ export const apiService = {
   },
 
   getFileUrl(filename: string): string {
-    return `http://localhost:3000/api/documents/file/${filename}`;
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+    return `${baseUrl}/documents/file/${filename}`;
   },
 };
