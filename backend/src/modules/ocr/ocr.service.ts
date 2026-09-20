@@ -5,6 +5,8 @@ import { spawn } from 'child_process';
 import sharp from 'sharp';
 import { createWorker } from 'tesseract.js';
 
+import * as os from 'os';
+
 export interface OcrResult {
   rawText: string;
   processedFilePath: string;
@@ -18,10 +20,15 @@ export class OcrService {
   async preprocessImage(filePath: string): Promise<string> {
     const ext = path.extname(filePath).toLowerCase();
 
-    // Ensure processed directory exists
-    const processedDir = path.join(process.cwd(), 'processed');
+    // Ensure processed directory exists in writable location (/tmp on Vercel)
+    const processedDir = process.env.VERCEL
+      ? os.tmpdir()
+      : path.join(process.cwd(), 'processed');
+
     if (!fs.existsSync(processedDir)) {
-      fs.mkdirSync(processedDir, { recursive: true });
+      try {
+        fs.mkdirSync(processedDir, { recursive: true });
+      } catch (e) {}
     }
 
     if (['.jpg', '.jpeg', '.png', '.webp', '.bmp'].includes(ext)) {
@@ -134,7 +141,10 @@ export class OcrService {
 
   private async runTesseractOcr(imagePath: string): Promise<string> {
     try {
-      const worker = await createWorker('eng');
+      const worker = await createWorker('eng', 1, {
+        cachePath: os.tmpdir(),
+        cacheMethod: 'write',
+      });
       const ret = await worker.recognize(imagePath);
       await worker.terminate();
       return ret.data.text || '';

@@ -23,14 +23,24 @@ import { UploadDocumentDto } from './dto/upload-document.dto';
 import { UpdateExtractedDataDto } from './dto/update-document.dto';
 import { DocumentType } from '../../database/entities/document.entity';
 
+import * as os from 'os';
+
+const getUploadDir = () => {
+  const dir = process.env.VERCEL
+    ? os.tmpdir()
+    : path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(dir)) {
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+    } catch (e) {}
+  }
+  return dir;
+};
+
 // Configure Multer storage matching File 3 (server.js)
 const storage = diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(process.cwd(), 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
+    cb(null, getUploadDir());
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
@@ -121,13 +131,17 @@ export class DocumentsController {
 
   @Get('file/:filename')
   async serveFile(@Param('filename') filename: string, @Res() res: Response) {
-    const uploadPath = path.join(process.cwd(), 'uploads', filename);
-    const processedPath = path.join(process.cwd(), 'processed', filename);
+    const tmpDir = os.tmpdir();
+    const pTmp = path.join(tmpDir, filename);
+    const pUpload = path.join(process.cwd(), 'uploads', filename);
+    const pProcessed = path.join(process.cwd(), 'processed', filename);
 
-    if (fs.existsSync(uploadPath)) {
-      return res.sendFile(uploadPath);
-    } else if (fs.existsSync(processedPath)) {
-      return res.sendFile(processedPath);
+    if (fs.existsSync(pTmp)) {
+      return res.sendFile(pTmp);
+    } else if (fs.existsSync(pUpload)) {
+      return res.sendFile(pUpload);
+    } else if (fs.existsSync(pProcessed)) {
+      return res.sendFile(pProcessed);
     }
 
     throw new NotFoundException('File not found');

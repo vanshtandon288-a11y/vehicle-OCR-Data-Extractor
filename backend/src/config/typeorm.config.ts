@@ -2,6 +2,9 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ProcessedDocument } from '../database/entities/document.entity';
 import { ExtractedData } from '../database/entities/extracted-data.entity';
 
+import * as os from 'os';
+import * as path from 'path';
+
 export const getTypeOrmConfig = (): TypeOrmModuleOptions => {
   const dbType = process.env.DB_TYPE || 'sqlite';
 
@@ -19,10 +22,14 @@ export const getTypeOrmConfig = (): TypeOrmModuleOptions => {
     };
   }
 
-  // SQLite fallback for easy running without external server setup
+  // SQLite fallback using writable /tmp directory on Vercel
+  const sqliteDatabase = process.env.VERCEL
+    ? path.join(os.tmpdir(), 'vehicle_doc_ocr.sqlite')
+    : (process.env.DB_SQLITE_PATH || 'vehicle_doc_ocr.sqlite');
+
   return {
     type: 'sqlite',
-    database: process.env.DB_SQLITE_PATH || 'vehicle_doc_ocr.sqlite',
+    database: sqliteDatabase,
     entities: [ProcessedDocument, ExtractedData],
     synchronize: true,
     logging: false,
