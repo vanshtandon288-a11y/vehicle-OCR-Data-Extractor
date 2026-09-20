@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { createWorker } from 'tesseract.js';
 import {
   ProcessedDocument,
   DocumentListResponse,
@@ -18,78 +17,12 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-const preprocessImageInBrowser = (file: File): Promise<Blob | File> => {
-  return new Promise((resolve) => {
-    if (!file.type.startsWith('image/')) return resolve(file);
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const canvas = document.createElement('canvas');
-      const maxDim = 1800;
-      let width = img.width;
-      let height = img.height;
-
-      if (width > maxDim || height > maxDim) {
-        if (width > height) {
-          height = Math.round((height * maxDim) / width);
-          width = maxDim;
-        } else {
-          width = Math.round((width * maxDim) / height);
-          height = maxDim;
-        }
-      }
-
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return resolve(file);
-
-      // Contrast boost and grayscale for high accuracy document OCR
-      ctx.filter = 'contrast(140%) grayscale(100%) brightness(105%)';
-      ctx.drawImage(img, 0, 0, width, height);
-
-      canvas.toBlob(
-        (blob) => {
-          resolve(blob || file);
-        },
-        'image/jpeg',
-        0.92,
-      );
-    };
-    img.onerror = () => resolve(file);
-    img.src = url;
-  });
-};
-
-const runBrowserOcr = async (file: File): Promise<string> => {
-  try {
-    const preprocessedBlob = await preprocessImageInBrowser(file);
-    const worker = await createWorker('eng');
-    await worker.setParameters({
-      tessedit_pageseg_mode: '6' as any, // Single uniform block of text mode
-      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 -./()',
-    });
-    const ret = await worker.recognize(preprocessedBlob);
-    await worker.terminate();
-    return ret.data.text || '';
-  } catch (err) {
-    console.warn('Browser OCR failed, falling back to server side OCR:', err);
-    return '';
-  }
-};
-
 export const apiService = {
   async uploadDocument(
     file: File,
     documentType: DocumentType,
   ): Promise<ProcessedDocument> {
     const base64File = await fileToBase64(file);
-    let rawText = '';
-
-    if (file.type.startsWith('image/')) {
-      rawText = await runBrowserOcr(file);
-    }
 
     try {
       const response = await axios.post<ProcessedDocument>(
@@ -98,7 +31,6 @@ export const apiService = {
           base64File,
           fileName: file.name,
           documentType,
-          rawText,
         },
         {
           headers: {
@@ -112,7 +44,6 @@ export const apiService = {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('documentType', documentType);
-      if (rawText) formData.append('rawText', rawText);
 
       const response = await axios.post<ProcessedDocument>(
         `${API_BASE_URL}/documents/upload`,

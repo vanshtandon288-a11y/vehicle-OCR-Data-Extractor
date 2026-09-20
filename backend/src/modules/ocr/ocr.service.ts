@@ -3,8 +3,6 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { spawn } from 'child_process';
 import sharp from 'sharp';
-import { createWorker } from 'tesseract.js';
-
 import * as os from 'os';
 
 export interface OcrResult {
@@ -52,32 +50,13 @@ export class OcrService {
   async runOcr(filePath: string): Promise<OcrResult> {
     const processedFilePath = await this.preprocessImage(filePath);
 
-    // Bypasses 30-second Python process spawn timeout on Vercel Serverless
-    const isVercel = !!process.env.VERCEL;
+    this.logger.log('Running Python PaddleOCR 3.0 engine...');
+    const paddleText = await this.runPaddleOcr(processedFilePath);
 
-    if (!isVercel && process.env.PADDLEOCR_ENABLED !== 'false') {
-      try {
-        const paddleText = await this.runPaddleOcr(processedFilePath);
-        if (paddleText && paddleText.length > 5 && !paddleText.includes('error')) {
-          this.logger.log('PaddleOCR processed document successfully');
-          return {
-            rawText: paddleText,
-            processedFilePath,
-            ocrEngineUsed: 'PaddleOCR 3.0',
-          };
-        }
-      } catch (err) {
-        this.logger.warn(`PaddleOCR worker warning: ${err.message}. Falling back to Tesseract.js`);
-      }
-    }
-
-    // Fast Tesseract.js execution
-    this.logger.log('Running Tesseract.js OCR engine...');
-    const tesseractText = await this.runTesseractOcr(processedFilePath);
     return {
-      rawText: tesseractText,
+      rawText: paddleText,
       processedFilePath,
-      ocrEngineUsed: 'Tesseract.js 5.0',
+      ocrEngineUsed: 'PaddleOCR 3.0',
     };
   }
 
@@ -164,26 +143,5 @@ export class OcrService {
       // Send image path to stdin
       pyProcess.stdin.write(imagePath + '\n');
     });
-  }
-
-  private async runTesseractOcr(imagePath: string): Promise<string> {
-    try {
-      if (process.env.VERCEL) {
-        this.logger.warn(
-          'Skipping server-side Tesseract worker process on Vercel to prevent lambda hang.',
-        );
-        return '';
-      }
-      const worker = await createWorker('eng', 1, {
-        cachePath: os.tmpdir(),
-        cacheMethod: 'write',
-      });
-      const ret = await worker.recognize(imagePath);
-      await worker.terminate();
-      return ret.data.text || '';
-    } catch (error) {
-      this.logger.error(`Tesseract OCR failed: ${error.message}`);
-      return '';
-    }
   }
 }
