@@ -16,9 +16,16 @@ export const engineKeywords = [
 export const registrationKeywords = [
   'regn',
   'registration',
-  'registration number',
-  'regn. number',
-  'reg no ',
+  'reg no',
+  'reg.no',
+  'regn. no',
+  'regn no',
+  'vehicle no',
+  'vehicle number',
+  'vchl no',
+  'vchl. no',
+  'rc no',
+  'rc number',
 ];
 
 export const insuranceNumberKeywords = [

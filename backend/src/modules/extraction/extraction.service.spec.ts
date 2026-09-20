@@ -35,6 +35,27 @@ describe('ExtractionService', () => {
     expect(result.isEngineValid).toBe(true);
   });
 
+  it('should extract DL6SAG2552 format RC document correctly', () => {
+    const sampleRCText = `
+      Indian Union Vehicle Registration Certificate
+      Government of Odisha
+      Regn No Date of Regn Regn Validity
+      DL6SAG2552 21-04-2011 20-04-2026
+      Chassis No
+      MBLMC38ECBGC00871
+      Engine/Motor No
+      MC38EBBGC00802
+    `;
+
+    const result = service.extractData(DocumentType.RC, sampleRCText);
+    expect(result.registrationNumber).toBe('DL6SAG2552');
+    expect(result.chassisNumber).toBe('MBLMC38ECBGC00871');
+    expect(result.engineNumber).toBe('MC38EBBGC00802');
+    expect(result.isRegistrationValid).toBe(true);
+    expect(result.isChassisValid).toBe(true);
+    expect(result.isEngineValid).toBe(true);
+  });
+
   it('should extract Insurance document fields correctly', () => {
     const sampleInsuranceText = `
       MOTOR VEHICLE INSURANCE POLICY

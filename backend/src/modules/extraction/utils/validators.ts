@@ -34,8 +34,8 @@ export function isValidEngine(value: string): boolean {
   if (/^\d{6,8}$/.test(cleaned)) {
     return false;
   }
-  // Reject strings starting with common Chassis/VIN prefixes (e.g. MBL, MLM, MA1, MC38)
-  const chassisPrefixes = ['MBL', 'MLM', 'MA1', 'MB1', 'ME4', 'MD2', 'MAT', 'MC38', 'MBLMC'];
+  // Reject strings starting with 17-char full VIN chassis prefixes (e.g. MBLMC, MA1, MB1) but keep engine codes (e.g. MC38E)
+  const chassisPrefixes = ['MBLMC', 'MA1WB', 'MB1WB'];
   if (chassisPrefixes.some((prefix) => cleaned.startsWith(prefix))) {
     return false;
   }
@@ -53,7 +53,24 @@ export function isValidEngine(value: string): boolean {
 
 export function isValidRegistration(value: string): boolean {
   const cleaned = cleanValue(value);
-  return /^[A-Z]{2}\d{1,2}[A-Z]{1,3}\d{1,4}$/.test(cleaned);
+
+  // Standard Indian State vehicle registration: e.g. DL6SAG2552, MH12AB1234, DL01A1234
+  const standardPattern = /^[A-Z]{2}\d{1,2}[A-Z]{1,3}\d{1,4}$/;
+
+  // BH (Bharat) series registration: e.g. 21BH1234AA, 22BH5678A
+  const bhPattern = /^\d{2}BH\d{4}[A-Z]{1,2}$/;
+
+  // Commercial / State variations: e.g. DL1C1234, MH121234
+  const flexPattern = /^[A-Z]{2}\d{1,2}[A-Z]{0,3}\d{1,4}$/;
+
+  return (
+    (standardPattern.test(cleaned) || bhPattern.test(cleaned) || flexPattern.test(cleaned)) &&
+    cleaned.length >= 6 &&
+    cleaned.length <= 13 &&
+    !cleaned.includes('CHASSIS') &&
+    !cleaned.includes('ENGINE') &&
+    !cleaned.includes('MODEL')
+  );
 }
 
 export function isValidInsuranceNumber(value: string): boolean {

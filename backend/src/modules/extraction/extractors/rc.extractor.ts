@@ -65,27 +65,26 @@ export function extractRCData(text: string): RCExtractionResult {
       !registrationNumber &&
       containsKeyword(currentLine, registrationKeywords)
     ) {
-      const samelinereg = currentLine.match(
-        /([A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{1,4})/i,
-      );
-      if (samelinereg) {
-        registrationNumber = samelinereg[0];
-      }
       for (let j = i; j < Math.min(i + 6, lines.length); j++) {
-        const regMatch = lines[j].match(
-          /([A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{1,4})/i,
-        );
-        if (regMatch) {
-          registrationNumber = regMatch[0];
-          break;
+        const lineText = lines[j];
+        const regMatches = lineText.match(/([A-Z]{2}[\s\-\.]*\d{1,2}[\s\-\.]*[A-Z]{0,3}[\s\-\.]*\d{1,4})|(\d{2}[\s\-\.]*BH[\s\-\.]*\d{4}[\s\-\.]*[A-Z]{1,2})/gi);
+        if (regMatches) {
+          for (const m of regMatches) {
+            const val = cleanValue(m);
+            if (isValidRegistration(val) && val !== chassisNumber && val !== engineNumber) {
+              registrationNumber = val;
+              break;
+            }
+          }
         }
+        if (registrationNumber) break;
       }
     }
   }
 
-  // Fallback scan if registration number is not found by keywords
+  // Fallback 1: Scan across entire text for valid registration pattern
   if (!registrationNumber) {
-    const regMatches = text.match(/([A-Z]{2}\d{1,2}[A-Z]{1,3}\d{1,4})/gi);
+    const regMatches = text.match(/([A-Z]{2}[\s\-\.]*\d{1,2}[\s\-\.]*[A-Z]{0,3}[\s\-\.]*\d{1,4})|(\d{2}[\s\-\.]*BH[\s\-\.]*\d{4}[\s\-\.]*[A-Z]{1,2})/gi);
     if (regMatches) {
       for (const m of regMatches) {
         const val = cleanValue(m);
@@ -93,6 +92,22 @@ export function extractRCData(text: string): RCExtractionResult {
           registrationNumber = val;
           break;
         }
+      }
+    }
+  }
+
+  // Fallback 2: Indian State Codes + District + Series + Number (DL, MH, HR, UP, KA, GJ, TN, RJ, WB, AP, TS, KL, PB, CH, OD, BR, JH, MP, CG, UK, HP, JK)
+  if (!registrationNumber) {
+    const stateCodesRegex = /(DL|MH|HR|UP|KA|GJ|TN|RJ|WB|AP|TS|KL|PB|CH|OD|BR|JH|MP|CG|UK|HP|JK)[\s\-\.]*(\d{1,2}|O\d|O[0-9])[\s\-\.]*([A-Z]{1,3})[\s\-\.]*(\d{1,4})/gi;
+    const stateMatch = stateCodesRegex.exec(text);
+    if (stateMatch) {
+      const state = stateMatch[1].toUpperCase();
+      let dist = stateMatch[2].toUpperCase().replace('O', '0');
+      const series = stateMatch[3].toUpperCase();
+      const num = stateMatch[4];
+      const constructed = `${state}${dist}${series}${num}`;
+      if (isValidRegistration(constructed)) {
+        registrationNumber = constructed;
       }
     }
   }
