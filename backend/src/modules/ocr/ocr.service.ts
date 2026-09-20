@@ -52,8 +52,10 @@ export class OcrService {
   async runOcr(filePath: string): Promise<OcrResult> {
     const processedFilePath = await this.preprocessImage(filePath);
 
-    // Try Python PaddleOCR worker first if enabled
-    if (process.env.PADDLEOCR_ENABLED !== 'false') {
+    // Bypasses 30-second Python process spawn timeout on Vercel Serverless
+    const isVercel = !!process.env.VERCEL;
+
+    if (!isVercel && process.env.PADDLEOCR_ENABLED !== 'false') {
       try {
         const paddleText = await this.runPaddleOcr(processedFilePath);
         if (paddleText && paddleText.length > 5 && !paddleText.includes('error')) {
@@ -69,7 +71,7 @@ export class OcrService {
       }
     }
 
-    // Fallback to Tesseract.js
+    // Fast Tesseract.js execution
     this.logger.log('Running Tesseract.js OCR engine...');
     const tesseractText = await this.runTesseractOcr(processedFilePath);
     return {
@@ -141,7 +143,9 @@ export class OcrService {
 
   private async runTesseractOcr(imagePath: string): Promise<string> {
     try {
+      const langPath = path.join(process.cwd(), 'eng.traineddata');
       const worker = await createWorker('eng', 1, {
+        langPath: fs.existsSync(langPath) ? process.cwd() : undefined,
         cachePath: os.tmpdir(),
         cacheMethod: 'write',
       });
