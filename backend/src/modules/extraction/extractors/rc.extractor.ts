@@ -66,8 +66,8 @@ export function extractRCData(text: string): RCExtractionResult {
       containsKeyword(currentLine, registrationKeywords)
     ) {
       for (let j = i; j < Math.min(i + 6, lines.length); j++) {
-        const lineText = lines[j];
-        const regMatches = lineText.match(/([A-Z]{2}[\s\-\.]*\d{1,2}[\s\-\.]*[A-Z]{0,3}[\s\-\.]*\d{1,4})|(\d{2}[\s\-\.]*BH[\s\-\.]*\d{4}[\s\-\.]*[A-Z]{1,2})/gi);
+        const lineTextNoDate = lines[j].replace(/\d{2}[\-\/\.]\d{2}[\-\/\.]\d{4}|\d{2}[\-\/\.][A-Za-z]{3}[\-\/\.]\d{4}/gi, '');
+        const regMatches = lineTextNoDate.match(/([A-Z]{2}[\s\-\.]*\d{1,2}[\s\-\.]*[A-Z]{0,3}[\s\-\.]*\d{1,4})|(\d{2}[\s\-\.]*BH[\s\-\.]*\d{4}[\s\-\.]*[A-Z]{1,2})/gi);
         if (regMatches) {
           for (const m of regMatches) {
             const val = cleanValue(m);
@@ -84,7 +84,8 @@ export function extractRCData(text: string): RCExtractionResult {
 
   // Fallback 1: Scan across entire text for valid registration pattern
   if (!registrationNumber) {
-    const regMatches = text.match(/([A-Z]{2}[\s\-\.]*\d{1,2}[\s\-\.]*[A-Z]{0,3}[\s\-\.]*\d{1,4})|(\d{2}[\s\-\.]*BH[\s\-\.]*\d{4}[\s\-\.]*[A-Z]{1,2})/gi);
+    const textNoDate = text.replace(/\d{2}[\-\/\.]\d{2}[\-\/\.]\d{4}|\d{2}[\-\/\.][A-Za-z]{3}[\-\/\.]\d{4}/gi, '');
+    const regMatches = textNoDate.match(/([A-Z]{2}[\s\-\.]*\d{1,2}[\s\-\.]*[A-Z]{0,3}[\s\-\.]*\d{1,4})|(\d{2}[\s\-\.]*BH[\s\-\.]*\d{4}[\s\-\.]*[A-Z]{1,2})/gi);
     if (regMatches) {
       for (const m of regMatches) {
         const val = cleanValue(m);
