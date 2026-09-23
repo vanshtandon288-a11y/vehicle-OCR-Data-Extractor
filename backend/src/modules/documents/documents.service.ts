@@ -176,12 +176,14 @@ export class DocumentsService {
 
       savedDocument.status = ProcessingStatus.COMPLETED;
       savedDocument.extractedData = extractedData;
-      return await this.documentRepository.save(savedDocument);
+      await this.documentRepository.save(savedDocument);
+      return await this.findOne(savedDocument.id);
     } catch (error) {
       this.logger.error(`Error processing json upload: ${error.message}`);
       savedDocument.status = ProcessingStatus.FAILED;
       savedDocument.errorMessage = error.message;
-      return await this.documentRepository.save(savedDocument);
+      await this.documentRepository.save(savedDocument);
+      return await this.findOne(savedDocument.id);
     }
   }
 
