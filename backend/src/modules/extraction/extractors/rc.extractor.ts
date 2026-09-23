@@ -114,11 +114,11 @@ export function extractRCData(text: string): RCExtractionResult {
   }
 
   if (!chassisNumber) {
-    const allMatches = text.match(/([A-Z0-9]{15,20})/gi);
+    const allMatches = text.match(/([A-Z0-9]{12,25})/gi);
     if (allMatches) {
       for (const match of allMatches) {
         const value = cleanValue(match);
-        if (isValidChassis(value)) {
+        if (value.length >= 12 && !value.includes('REG') && !value.includes('ENGINE')) {
           chassisNumber = value;
           break;
         }
@@ -127,19 +127,21 @@ export function extractRCData(text: string): RCExtractionResult {
   }
 
   if (!engineNumber) {
-    const allMatches = text.match(/([A-Z0-9]{8,25})/gi);
+    const allMatches = text.match(/([A-Z0-9]{6,25})/gi);
     if (allMatches) {
       for (const match of allMatches) {
         const value = cleanValue(match);
         if (
-          isValidEngine(value) &&
+          value.length >= 6 &&
           value !== chassisNumber &&
-          value !== cleanValue(registrationNumber)
+          value !== cleanValue(registrationNumber) &&
+          !value.includes('ENGINE') &&
+          !value.includes('MOTOR') &&
+          !value.includes('CHASSIS')
         ) {
           engineNumber = value;
           break;
         }
-      }
     }
   }
 

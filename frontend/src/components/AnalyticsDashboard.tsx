@@ -1,6 +1,6 @@
 import React from 'react';
 import { StatsSummary } from '../types/document.types';
-import { FileCheck, CheckCircle2, AlertTriangle, Layers } from 'lucide-react';
+import { FileCheck, CheckCircle2, Edit3, Layers } from 'lucide-react';
 
 interface AnalyticsDashboardProps {
   stats: StatsSummary | null;
@@ -35,15 +35,15 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ stats })
         </div>
       </div>
 
-      {/* Issues / Failures */}
+      {/* Assisted Manual Edits */}
       <div className="glass-card-morph rounded-2xl p-6 flex items-center justify-between group">
         <div>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Failed / Incomplete</p>
-          <h3 className="text-3xl font-extrabold text-amber-400 mt-1 group-hover:scale-105 transition-transform">{stats.statusBreakdown.failed}</h3>
-          <p className="text-xs text-slate-400 mt-1">Requires Re-upload</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Assisted Manual Edits</p>
+          <h3 className="text-3xl font-extrabold text-indigo-400 mt-1 group-hover:scale-105 transition-transform">Active</h3>
+          <p className="text-xs text-slate-400 mt-1">Inline Verification Enabled</p>
         </div>
-        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center justify-center group-hover:rotate-6 group-hover:scale-110 transition-transform shadow-lg shadow-amber-500/20">
-          <AlertTriangle className="w-7 h-7" />
+        <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 flex items-center justify-center group-hover:rotate-6 group-hover:scale-110 transition-transform shadow-lg shadow-indigo-500/20">
+          <Edit3 className="w-7 h-7" />
         </div>
       </div>
 

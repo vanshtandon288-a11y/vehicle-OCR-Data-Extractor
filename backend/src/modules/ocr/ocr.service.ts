@@ -36,8 +36,9 @@ export class OcrService {
       );
 
       await sharp(filePath)
-        .resize({ width: 1200, withoutEnlargement: true })
-        .jpeg({ quality: 80 })
+        .resize({ width: 2400, withoutEnlargement: true })
+        .sharpen()
+        .jpeg({ quality: 98 })
         .toFile(resizedPath);
 
       return resizedPath;
