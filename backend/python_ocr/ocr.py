@@ -1,34 +1,46 @@
 import sys
 import json
 
-# Primary: PaddleOCR as specified in requirements.txt
-try:
-    from paddleocr import PaddleOCR
-    ocr = PaddleOCR(lang='en')
-    def run_ocr(image_path):
-        result = ocr.predict(image_path)
-        if isinstance(result, list) and len(result) > 0 and isinstance(result[0], dict) and "rec_texts" in result[0]:
-            return result[0]["rec_texts"]
-        elif isinstance(result, list) and len(result) > 0:
+def get_ocr_engine():
+    try:
+        from paddleocr import PaddleOCR
+        ocr = PaddleOCR(use_angle_cls=True, lang='en', show_log=False)
+        def run_ocr(image_path):
+            res = ocr.ocr(image_path, cls=True)
             lines = []
-            for line in result[0]:
-                if len(line) >= 2 and line[1]:
-                    lines.append(line[1][0] if isinstance(line[1], (tuple, list)) else line[1])
+            if res and isinstance(res, list):
+                for page in res:
+                    if page:
+                        for line in page:
+                            if len(line) >= 2 and line[1]:
+                                text = line[1][0] if isinstance(line[1], (tuple, list)) else line[1]
+                                if text:
+                                    lines.append(str(text))
             return lines
-        return []
-except Exception as p_err:
-    # Secondary: RapidOCR (Official ONNX Engine for PaddleOCR PP-OCRv4 models)
+        return run_ocr
+    except Exception:
+        pass
+
     try:
         from rapidocr_onnxruntime import RapidOCR
         engine = RapidOCR()
         def run_ocr(image_path):
-            result, _ = engine(image_path)
-            if result:
-                return [line[1] for line in result]
-            return []
-    except Exception as r_err:
+            res, _ = engine(image_path)
+            lines = []
+            if res:
+                for line in res:
+                    if len(line) >= 2 and line[1]:
+                        text = line[1]
+                        if text:
+                            lines.append(str(text))
+            return lines
+        return run_ocr
+    except Exception as e:
         def run_ocr(image_path):
-            return {"error": f"OCR Engine initialization failed: {p_err} | {r_err}"}
+            return {"error": f"OCR Engine initialization failed: {str(e)}"}
+        return run_ocr
+
+run_ocr = get_ocr_engine()
 
 if __name__ == "__main__":
     while True:

@@ -88,7 +88,10 @@ export class OcrService {
     }
 
     return new Promise((resolve, reject) => {
-      const pythonPath = process.env.PYTHON_PATH || 'python';
+      let pythonPath = process.env.PYTHON_PATH || 'python';
+      if (!process.env.PYTHON_PATH && fs.existsSync('C:\\Python314\\python.exe')) {
+        pythonPath = 'C:\\Python314\\python.exe';
+      }
       const scriptPath = path.join(process.cwd(), 'python_ocr', 'ocr.py');
 
       if (!fs.existsSync(scriptPath)) {

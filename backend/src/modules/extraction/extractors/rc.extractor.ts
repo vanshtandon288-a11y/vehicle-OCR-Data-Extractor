@@ -136,12 +136,12 @@ export function extractRCData(text: string): RCExtractionResult {
           value !== chassisNumber &&
           value !== cleanValue(registrationNumber) &&
           !value.includes('ENGINE') &&
-          !value.includes('MOTOR') &&
-          !value.includes('CHASSIS')
+          !value.includes('MOTOR')
         ) {
           engineNumber = value;
           break;
         }
+      }
     }
   }
 
