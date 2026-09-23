@@ -16,21 +16,20 @@ export const ExtractedDataCard: React.FC<ExtractedDataCardProps> = ({ document, 
   const data = document.extractedData || {} as any;
 
   useEffect(() => {
-    if (document.extractedData) {
-      setFormData({
-        chassisNumber: data.chassisNumber || '',
-        engineNumber: data.engineNumber || '',
-        registrationNumber: data.registrationNumber || '',
-        insuranceNumber: data.insuranceNumber || '',
-        insuranceExpiryDate: data.insuranceExpiryDate || '',
-        pucNumber: data.pucNumber || '',
-        pucExpiryDate: data.pucExpiryDate || '',
-        permitNumber: data.permitNumber || '',
-        permitExpiryDate: data.permitExpiryDate || '',
-        fitnessExpiryDate: data.fitnessExpiryDate || '',
-      });
-    }
-  }, [document]);
+    const ext = document?.extractedData || {} as any;
+    setFormData({
+      chassisNumber: ext.chassisNumber || '',
+      engineNumber: ext.engineNumber || '',
+      registrationNumber: ext.registrationNumber || '',
+      insuranceNumber: ext.insuranceNumber || '',
+      insuranceExpiryDate: ext.insuranceExpiryDate || '',
+      pucNumber: ext.pucNumber || '',
+      pucExpiryDate: ext.pucExpiryDate || '',
+      permitNumber: ext.permitNumber || '',
+      permitExpiryDate: ext.permitExpiryDate || '',
+      fitnessExpiryDate: ext.fitnessExpiryDate || '',
+    });
+  }, [document, document?.extractedData]);
 
   const handleChange = (field: string, val: string) => {
     setFormData((prev) => ({ ...prev, [field]: val }));
@@ -67,7 +66,10 @@ export const ExtractedDataCard: React.FC<ExtractedDataCardProps> = ({ document, 
     isValid?: boolean,
     placeholder = '',
   ) => {
-    const hasValue = Boolean(formData[fieldKey] && formData[fieldKey].trim().length > 0);
+    const fieldValue = formData[fieldKey] !== undefined && formData[fieldKey] !== '' 
+      ? formData[fieldKey] 
+      : (data[fieldKey] || '');
+    const hasValue = Boolean(fieldValue && String(fieldValue).trim().length > 0);
 
     return (
       <div className="glass-card-morph p-5 rounded-2xl border border-white/10 group">
@@ -101,7 +103,7 @@ export const ExtractedDataCard: React.FC<ExtractedDataCardProps> = ({ document, 
         <div className="relative">
           <input
             type="text"
-            value={formData[fieldKey] || ''}
+            value={fieldValue}
             onChange={(e) => handleChange(fieldKey, e.target.value)}
             placeholder={placeholder || `Click to enter ${label}`}
             className="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl px-4 py-2.5 text-sm text-white font-mono font-bold placeholder:text-slate-500 focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/30 transition-all shadow-inner"
