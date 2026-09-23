@@ -2,6 +2,16 @@ export const chassisKeywords = [
   'chassis',
   'chasis',
   'vin',
+  'c.no',
+  'c. no',
+  'c no',
+  'c.n',
+  'c n',
+  'chno',
+  'ch.no',
+  'ch no',
+  'ch. no',
+  'chass',
 ];
 
 export const engineKeywords = [
@@ -9,8 +19,16 @@ export const engineKeywords = [
   'engine no',
   'engine number',
   'eng no',
+  'eng.no',
+  'eng. no',
   'motor no',
   'motor number',
+  'e.no',
+  'e. no',
+  'e no',
+  'e.n',
+  'e n',
+  'eno',
 ];
 
 export const registrationKeywords = [
@@ -20,12 +38,16 @@ export const registrationKeywords = [
   'reg.no',
   'regn. no',
   'regn no',
+  'regn.no',
   'vehicle no',
   'vehicle number',
   'vchl no',
   'vchl. no',
   'rc no',
   'rc number',
+  'r.no',
+  'r no',
+  'reg',
 ];
 
 export const insuranceNumberKeywords = [

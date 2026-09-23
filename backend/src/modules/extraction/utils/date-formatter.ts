@@ -1,3 +1,5 @@
+import { isValidRegistration } from './validators';
+
 export function formatDate(dateStr: string): string {
   if (!dateStr) return '';
   const months: Record<string, string> = {
@@ -49,6 +51,8 @@ export function extractAfterKeyword(
   startIndex: number,
   validator: (val: string) => boolean,
 ): string {
+  let fallbackCandidate = '';
+
   for (
     let j = startIndex;
     j <= startIndex + 5 && j < lines.length;
@@ -65,17 +69,21 @@ export function extractAfterKeyword(
         value.includes('CHASSIS') ||
         value.includes('NUMBER') ||
         value.includes('OWNER') ||
-        value.includes('ADDRESS')
+        value.includes('ADDRESS') ||
+        /^\d{6,8}$/.test(value) ||
+        isValidRegistration(value)
       ) {
         continue;
       }
-      const result = validator(value);
-      if (result) {
+      if (validator(value)) {
         return value;
+      }
+      if (!fallbackCandidate && value.length >= 6 && /\d/.test(value) && /[A-Z]/.test(value)) {
+        fallbackCandidate = value;
       }
     }
   }
-  return '';
+  return fallbackCandidate;
 }
 
 function cleanValue(val: string): string {

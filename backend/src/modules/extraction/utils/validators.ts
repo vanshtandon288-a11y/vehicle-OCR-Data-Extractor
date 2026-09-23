@@ -26,8 +26,7 @@ export function isValidChassis(value: string): boolean {
 
 export function isValidEngine(value: string): boolean {
   const cleaned = cleanValue(value);
-  const regNumberPattern = /^[A-Z]{2}\d{1,2}[A-Z]{1,3}\d+/;
-  if (regNumberPattern.test(cleaned)) {
+  if (isValidRegistration(cleaned)) {
     return false;
   }
   // Engine number should NOT be pure 6 or 8-digit date string (e.g. 20042026 from 20-04-2026)
